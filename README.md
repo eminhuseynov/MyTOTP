@@ -45,3 +45,5 @@ c)	Login to build.phonegap.com and download your APK
 
 You will need to configure signing certificates to create release packages (otherwise it will be debug APKs)
 
+
+Have a look at the demo <a href=http://youtu.be/yfP5770iDZ0>here</a>
