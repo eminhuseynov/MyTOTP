@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
+        <link rel="stylesheet" href="css/jquery.mobile-1.4.4.min.css" />
+	    <script src="js/jquery-1.11.1.min.js"></script> 
+        <script src="js/jquery.mobile-1.4.4.min.js"></script>  
+		<script src="js/URI.js"></script>  
+		<script src="js/sha.js"></script>  
+	    <title>MyTOTP</title>
+    </head>
+    <body onLoad="listProfiles()">
+	 <div data-role="page" data-theme="a" id="index">
+			 
+            <div   data-role="header">
+                <h1 > MyTOTP - TOTP App Template</h1>
+
+
+				 <a   href="#popupNewTOTP" data-transition="pop" data-rel="popup"  onClick="showSaveswap()" data-icon="plus" data-ajax="false" class="ui-btn-left">Add</a>
+				 
+				 
+		 
+	
+	
+            </div>
+    
+            <div data-role="content" id=content > 
+			<div id=showotp class="ui-body ui-body-a" style="max-width:35em;display:none;   margin-left: auto;  margin-right: auto;" >
+			<input type=hidden id=secret>
+			<button class="ui-btn ui-icon-user ui-btn-icon-left ui-shadow ui-corner-all" id=accountitle>user</button>
+			<button class="ui-btn ui-icon-lock ui-btn-icon-left ui-shadow ui-corner-all " id=totp >totp</button>
+			<button class="ui-btn ui-icon-recycle ui-btn-icon-left ui-shadow ui-corner-all " id=countdown >30</button>
+			<br>
+			<a  class='ui-shadow ui-btn ui-corner-all ui-btn-inline ui-btn-icon-left ui-icon-check' onClick="$('#showotp').hide()" > OK </a> <a class=" ui-btn ui-btn-small   ui-btn-inline ui-btn-icon-left ui-icon-delete" style="float:right"  href="#deleteProfile"  >delete</a>
+			
+			</div>
+		
+		<h3>Profiles</h3>
+			<div id=list> 
+			
+			 
+			</div>
+	
+				
+            </div> 
+				 
+			  
+			 
+        </div>  
+
+		
+		</body>
+ 
+        <script type="text/javascript" src="cordova.js"></script>
+        <script type="text/javascript" src="js/index.js"></script>
+		
+      
+		 <script>
+		 
+	var OTPURL;
+	
+
+		 function showTOTP(id) {
+		 
+		 var totpinfo=localStorage.getItem(id).split("|");
+	 
+		 $('#accountitle').html(totpinfo[0]+":"+totpinfo[1]);
+		 
+		 $('#secret').val(totpinfo[2]);
+		 
+		 $('#showotp').show();
+		 
+		 localStorage["lastused"]=id;
+		 
+		 setInterval(updateOtp ,100);
+		 }
+		 
+		 
+		 
+
+
+		  
+ 
+
+ 
+		function showSave(type) {
+
+//Scan QR code		
+if (type==1) {
+
+
+//var OTPURL= "otpauth://totp/Exampl22e:alice@google.com?secret=JBSWY3DPEHPK3PXP&isssuer=Example";
+
+// Choose debug=1 belo to replace QR scanner with JS prompt , otherwise test on real device
+var debug=0;
+
+if (debug==1) { 
+
+  OTPURL = prompt("TOTP URI", "otpauth://"); }
+ else {
+
+cordova.plugins.barcodeScanner.scan(
+      function (result) {
+           OTPURL = String(result.text);
+		  
+		 
+      }, 
+      function (error) {
+          alert("Scanning failed: " + error);
+      }
+   );
+   
+
+
+}
+
+
+ 
+ 
+var uri = URI(OTPURL);
+
+//Get secret and issues
+var URIresult = URI.parseQuery(uri.query());
+var secret=URIresult["secret"];
+var issuer=URIresult["issuer"];
+var userinfo = uri.segment(0).split(":");
+var accountname=userinfo[1];
+//Read issuer if not defined
+if (issuer == undefined ) { issuer=userinfo[0]; }
+ 
+
+$('#saveissuer').val(issuer);
+$('#saveaccount').val(accountname);
+$('#savesecret').val(secret);
+
+}
+		
+$('#firstbuttons').hide();
+$('#saveprofile').show();
+
+
+}
+
+
+function showSaveswap() {
+$('#firstbuttons').show();
+$('#saveprofile').hide();
+
+
+}
+function addProfile() {
+
+//Generate unique id 
+var saveid= "myotp_"+Math.floor(Math.random() * 100000000000001);
+localStorage.setItem(saveid, $('#saveissuer').val()+"|"+$('#saveaccount').val()+"|"+$('#savesecret').val());
+$('#popupNewTOTP').dialog('close');
+
+listProfiles();
+
+}
+
+function listProfiles() {
+
+if (localStorage["lastused"]!== undefined ) {
+showTOTP(localStorage["lastused"]);
+
+}
+
+$('#list').html(" ");
+
+var countprofiles=0;
+var arr = []; // Array to hold the keys
+// Iterate over localStorage and insert the keys that meet the condition into arr
+for (var i = 0; i < localStorage.length; i++){
+    if (localStorage.key(i).substring(0,6) == 'myotp_') {
+       
+		var profileinfo=localStorage.getItem(localStorage.key(i)).split("|");
+		countprofiles=countprofiles+1;
+		  $('#list').html($('#list').html()+"<a  href=# class='ui-shadow ui-btn ui-corner-all ui-btn-inline ui-btn-icon-left ui-icon-grid' id='"+localStorage.key(i)+"' onClick=showTOTP('"+localStorage.key(i)+"') >"+profileinfo[0]+":"+profileinfo[1]+"</a>  ");
+		  
+		  
+		  
+    }
+}
+
+ if (countprofiles==0) {
+ 
+ $('#list').html("<h5>no profiles exist. click 'Add' to create the first profile</h5>")
+ }
+
+
+}
+
+
+ function dec2hex(s) { return (s < 15.5 ? '0' : '') + Math.round(s).toString(16); }
+    function hex2dec(s) { return parseInt(s, 16); }
+
+    function base32tohex(base32) {
+        var base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        var bits = "";
+        var hex = "";
+
+        for (var i = 0; i < base32.length; i++) {
+            var val = base32chars.indexOf(base32.charAt(i).toUpperCase());
+            bits += leftpad(val.toString(2), 5, '0');
+        }
+
+        for (var i = 0; i+4 <= bits.length; i+=4) {
+            var chunk = bits.substr(i, 4);
+            hex = hex + parseInt(chunk, 2).toString(16) ;
+        }
+        return hex;
+
+    }
+
+    function leftpad(str, len, pad) {
+        if (len + 1 >= str.length) {
+            str = Array(len + 1 - str.length).join(pad) + str;
+        }
+        return str;
+    }
+
+    function updateOtp() {
+            
+        var key = base32tohex($('#secret').val());
+        var epoch = Math.round(new Date().getTime() / 1000.0);
+        var time = leftpad(dec2hex(Math.floor(epoch / 30)), 16, '0');
+
+        var hmacObj = new jsSHA(time, 'HEX');
+        var hmac = hmacObj.getHMAC(key, 'HEX', 'SHA-1', "HEX");
+
+        
+
+        if (hmac == 'KEY MUST BE IN BYTE INCREMENTS') {
+            
+        } else {
+            var offset = hex2dec(hmac.substring(hmac.length - 1));
+            var part1 = hmac.substr(0, offset * 2);
+            var part2 = hmac.substr(offset * 2, 8);
+            var part3 = hmac.substr(offset * 2 + 8, hmac.length - offset);
+            if (part1.length > 0 ) $('#hmac').append($('<span/>').addClass('label label-default').append(part1));
+            $('#hmac').append($('<span/>').addClass('label label-primary').append(part2));
+            if (part3.length > 0) $('#hmac').append($('<span/>').addClass('label label-default').append(part3));
+        }
+
+        var otp = (hex2dec(hmac.substr(offset * 2, 8)) & hex2dec('7fffffff')) + '';
+        otp = (otp).substr(otp.length - 6, 6);
+		$('#totp').html(otp);
+		
+		
+		var epoch = Math.round(new Date().getTime() / 1000.0);
+    var countDown = 30 - (epoch % 30);
+    $('#countdown').html(countDown);
+	if (countDown<=5) {	$('#totp').css('color', 'red');} else { $('#totp').css('color', 'black'); }
+	
+	  
+	
+	
+ 
+    }
+
+ 
+	
+	function delProfile() {
+		$('#showotp').hide()
+		  localStorage.removeItem(localStorage["lastused"]);
+		  localStorage.removeItem("lastused");
+		 listProfiles();
+		 
+		 }
+
+		 </script>
+		 
+		 <div id="deleteProfile" class="no-transition"  data-role="dialog"   >
+    <div data-role="header"   >
+    <h1 >Delete profile</h1>
+    </div>
+    <div class="ui-content" role="main">
+	Are you sure you want to delete this profile?
+	<a   class="ui-btn" onClick="delProfile()"  data-rel="back"  >Yes</a>
+	<a href=# class="ui-btn"   data-rel="back">No</a>
+	</div>
+	
+	</div>
+	
+	<div id="popupNewTOTP" class="no-transition"  data-role="dialog"   >
+    <div data-role="header"   >
+    <h1 >Add a new TOTP Profile</h1>
+    </div>
+    <div class="ui-content" role="main"><div id=firstbuttons>
+        <h3 class="ui-title">Please select the method to add a TOTP Profile</h3>
+    
+        <a class="ui-btn"    onClick='showSave(1)'   > Scan a QR code</a>
+		<a class="ui-btn"     onClick='showSave(0)'  > Enter manually</a>
+  </div>
+   <div id=saveprofile style='display:none'>
+   <h3>Save profile</h3>
+   <label for="basic">Issuer</label>
+<input type="text" name="issuer" id="saveissuer" value="" data-mini="true" />
+
+ <label for="basic">Account</label>
+<input type="text" name="account" id="saveaccount" value="" data-mini="true" />
+
+<label for="basic">Secret</label>
+<input type="password" name="savesecret" id="savesecret" value=""   />
+<br>
+
+ <a class="ui-btn"    onClick='addProfile()'   > Save </a>
+ 
+   </div>
+	   
+    </div>
+</div>	 
+
+
+ 
+
+    
+</html>
+
